@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     global rules,count,j
 
-    #elevate()
+    elevate()
 
     val = int(input('Enter the number of rules(for blocking):'))
 
