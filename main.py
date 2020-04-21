@@ -1,6 +1,7 @@
 import pyshark
 import subprocess
 import socket
+import re
 from elevate import elevate
 
 
@@ -20,7 +21,11 @@ class Firewall:
             return -1
     
     def getProtocolName(self,value):
-        table = {num:name[8:] for name,num in vars(socket).items() if name.startswith("IPPROTO")}
+        table = {
+            1 : 'icmp',
+            6 : 'tcp',
+            17: 'udp'
+        }
         try:
             return table[value].lower()
         except:
@@ -76,19 +81,21 @@ def handlePacket(packet):
 
     k = 0
 
-    if firewall.src_ip == socket.gethostbyname(socket.gethostname()):
-        return
-
-    for i in rules:
+    ty = 'in'
+    
+    if firewall.src_ip == '192.168.0.104':
+        ty = 'out'
         
 
-        if (firewall.protocol == i['protocol'] and firewall.protocol != 'None') \
+    for i in rules:    
+        if ((firewall.protocol == i['protocol'] and firewall.protocol != 'None') \
         or (firewall.src_ip == i['srcip'] and firewall.src_ip != 'None')\
-        or (firewall.dst_ip == i['dstip'] and firewall.dst_ip != 'None'):
+        or (firewall.dst_ip == i['dstip'] and firewall.dst_ip != 'None')) and i['type'] == ty:
             
+
             print('Packet with ip',firewall.src_ip,'is blocked')
             
-            string = 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\" dir=in'
+            string = 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\" dir=' + str(ty)
             
             if firewall.protocol == i['protocol'] and firewall.protocol != 'None':
                 string += ' protocol=' + firewall.protocol
@@ -108,7 +115,10 @@ def handlePacket(packet):
             string += ' action=block'
             
             if count[k] == 0 and string != 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\"':
-                print(subprocess.getoutput(string))
+                subprocess.getoutput(string)
+                print('\n')
+                print('Rule name \" Block',j,'\" is implemented')
+                print('\n')
                 j = j + 1            
                 count[k] = -1
         k = k + 1
@@ -116,19 +126,21 @@ def handlePacket(packet):
                         
                 
 def checkIP(ip):
-    try:
-        if ip == 'None':
-            return False
-        socket.inet_ntoa(ip)
+    regex = '''^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+			25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+			25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+			25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)'''
+    
+    if re.search(regex, ip) :
         return True
-    except socket.error:
+    else:
         return False
+    
 
 
-if __name__ == '__main__':
+def main():
 
     global rules,count,j
-
 
     elevate()
 
@@ -138,50 +150,73 @@ if __name__ == '__main__':
     count = []
     j = 0
 
-    for i in range(val):
+    try:
 
-        d = {}
-        
-        d['protocol'] = input('Protocol(TCP,UDP,ICMP,None):')
-        
-        d['srcip'] = input('Source IP(IP,None):')
-        while(checkIP(d['srcip']) == False and d['srcip'] != 'None'):
+        for i in range(val):
+
+            d = {}
+            print('\nRule',str(i + 1),':\n')
+
+            d['type'] = str(input('Direction (Incoming/Outgoing):')).lower()
+            
+            if d['type'] == 'incoming':
+                d['type'] = 'in'
+            elif d['type'] == 'outgoing':
+                d['type'] = 'out'
+            else:
+                d['type'] = ''
+
+            d['protocol'] = str(input('Protocol(TCP,UDP,ICMP,None):')).lower()
+            
             d['srcip'] = input('Source IP(IP,None):')
+            
+            while(checkIP(d['srcip']) == False and d['srcip'] != 'None'):
+                d['srcip'] = input('Source IP(IP,None):')
+            
+            d['dstip'] = input('Destination IP(IP,None):')
+
+            while(checkIP(d['dstip']) == False and d['dstip'] != 'None'):
+                d['dstip'] = input('Destination IP(IP,None):')
+
+            
+
+            if d['protocol'] == 'None':
+                d['hostport'] = -1
+                d['otherport'] = -1
+            else:        
+                x = input('Host Port(port_num,None):')
+                if(x == 'None'):
+                    d['hostport'] = -1
+                else:
+                    d['hostport'] = int(x)
+                
+                x = input('Remote Port(port_num,None):')
+                if(x == 'None'):
+                    d['otherport'] = -1
+                else:
+                    d['otherport'] = int(x)
+
+            rules.append(d)
+            count.append(0)
+    except:
+        print('Rule entering error')
+        print('Program terminated.......')
         
-        d['dstip'] = input('Destination IP(IP,None):')
 
-        while(checkIP(d['dstip']) == False and d['dstip'] != 'None'):
-            d['dstip'] = input('Source IP(IP,None):')
-
-        if d['protocol'] == 'None':
-            d['hostport'] = -1
-            d['otherport'] = -1
-            continue
-        
-        x = input('Host Port(port_num,None):')
-        if(x == 'None'):
-            d['hostport'] = -1
-        else:
-            d['hostport'] = int(x)
-        x = input('Remote Port(port_num,None):')
-        if(x == 'None'):
-            d['otherport'] = -1
-        else:
-            d['otherport'] = int(x)
-
-        rules.append(d)
-        count.append(0)
-
-    capture = pyshark.LiveCapture(interface='Wi-Fi')
-    
-    capture.apply_on_packets(handlePacket,packet_count = 25)
+    try:
+        capture = pyshark.LiveCapture(interface = 'Wi-Fi')
+        capture.apply_on_packets(handlePacket, timeout = 30)
+    except:
+        pass
 
     
-    
+    print('\n\n')
     for i in range(j):        
         string = 'netsh advfirewall firewall delete rule name=\"block ' + str(i) + '\"'
-        print(subprocess.getoutput(string))
-    
-    
-    print('Done...')
+        subprocess.getoutput(string)
+        print('Rule name \" Block',j,'\" is deleted \n\n')
+
+if __name__ == '__main__':
+    main()
+    print('\n\nDone...')
     input()
