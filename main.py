@@ -83,7 +83,6 @@ def handlePacket(packet):
 
     for i in rules:
         
-        print(firewall.protocol == i['protocol'])
 
         if (firewall.protocol == i['protocol'] and firewall.protocol != 'None') \
         or (firewall.src_ip == i['srcip'] and firewall.src_ip != 'None')\
@@ -112,13 +111,10 @@ def handlePacket(packet):
             
             if count[k] == 0 and string != 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\"':
                 subprocess.getoutput(string)
-                print(string)
-                print('Ok.')
                 j = j + 1            
                 count[k] = -1
         k = k + 1
         
-
                         
                 
 def checkIP(ip):
@@ -143,7 +139,7 @@ if __name__ == '__main__':
     count = []
 
     for i in range(val):
-        
+
         d = {}
         
         d['protocol'] = input('Protocol(TCP,UDP,ICMP,None):')
@@ -180,5 +176,12 @@ if __name__ == '__main__':
     
     capture.apply_on_packets(handlePacket,packet_count = 25)
 
+    global j
+    
+    for i in range(j):
+        string = 'netsh advfirewall firewall delete rule name=block ' + str(i)
+        subprocess.getoutput(string)
+    
+    
     print('Done...')
     input()
