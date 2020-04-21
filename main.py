@@ -1,9 +1,7 @@
 import pyshark
 import subprocess
-import socket
 import re
 from elevate import elevate
-
 
 class Firewall:
 
