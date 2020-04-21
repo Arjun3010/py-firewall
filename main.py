@@ -67,8 +67,6 @@ class Firewall:
         self.port,self.dport = self.getPort(proto)
         
 
-j = 0
-
 def handlePacket(packet):
     
     firewall = Firewall()
@@ -110,7 +108,7 @@ def handlePacket(packet):
             string += ' action=block'
             
             if count[k] == 0 and string != 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\"':
-                subprocess.getoutput(string)
+                print(subprocess.getoutput(string))
                 j = j + 1            
                 count[k] = -1
         k = k + 1
@@ -129,7 +127,8 @@ def checkIP(ip):
 
 if __name__ == '__main__':
 
-    global rules,count
+    global rules,count,j
+
 
     elevate()
 
@@ -137,6 +136,7 @@ if __name__ == '__main__':
 
     rules = []
     count = []
+    j = 0
 
     for i in range(val):
 
@@ -176,11 +176,11 @@ if __name__ == '__main__':
     
     capture.apply_on_packets(handlePacket,packet_count = 25)
 
-    global j
     
-    for i in range(j):
-        string = 'netsh advfirewall firewall delete rule name=block ' + str(i)
-        subprocess.getoutput(string)
+    
+    for i in range(j):        
+        string = 'netsh advfirewall firewall delete rule name=\"block ' + str(i) + '\"'
+        print(subprocess.getoutput(string))
     
     
     print('Done...')
