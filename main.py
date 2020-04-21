@@ -143,6 +143,7 @@ if __name__ == '__main__':
     count = []
 
     for i in range(val):
+        
         d = {}
         
         d['protocol'] = input('Protocol(TCP,UDP,ICMP,None):')
