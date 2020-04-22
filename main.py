@@ -90,31 +90,36 @@ def handlePacket(packet):
         or (firewall.src_ip == i['srcip'] and firewall.src_ip != 'None')\
         or (firewall.dst_ip == i['dstip'] and firewall.dst_ip != 'None')) and i['type'] == ty:
             
-
-            print('Packet with ip',firewall.src_ip,'is blocked')
+            print('Packet with ID',packet.ip.id,'is blocked')
             
             string = 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\" dir=' + str(ty)
-            
+            s = '\n'
             if firewall.protocol == i['protocol'] and firewall.protocol != 'None':
                 string += ' protocol=' + firewall.protocol
+                s += 'Protocol: '+ firewall.protocol + '\n'
             
             if firewall.src_ip == i['srcip'] and firewall.src_ip != 'None':
                 string += ' remoteip=' + firewall.src_ip
+                s += 'Source IP: '+ firewall.src_ip + '\n'
             
             if firewall.dst_ip == i['dstip'] and firewall.dst_ip != 'None':
                 string += ' localip=' + firewall.dst_ip
+                s += 'Local IP: '+ firewall.dst_ip + '\n'
             
             if firewall.port == i['hostport'] and i['hostport'] != -1:
                 string += ' localport=' + firewall.port
+                s += 'Local Port: '+ firewall.port + '\n'
             
             if firewall.dport == i['otherport'] and i['otherport'] != -1:
                 string += ' remoteport=' + firewall.dport
+                s += 'Remote Port: '+ firewall.dport + '\n'
             
             string += ' action=block'
             
             if count[k] == 0 and string != 'netsh advfirewall firewall add rule name=\"block ' + str(j) + '\"':
                 subprocess.getoutput(string)
                 print('\n')
+                print(s)
                 print('Rule name \" Block',j,'\" is implemented')
                 print('\n')
                 j = j + 1            
@@ -177,8 +182,8 @@ def main():
                 d['dstip'] = input('Destination IP(IP,None):')
 
             
-
-            if d['protocol'] == 'None':
+            print(d['protocol'])
+            if d['protocol'] == 'none':
                 d['hostport'] = -1
                 d['otherport'] = -1
             else:        
